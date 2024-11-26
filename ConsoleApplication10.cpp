@@ -1,30 +1,41 @@
-﻿#define _CRT_SECURE_NO_WARNINGS
+﻿
+#define _CRT_SECURE_NO_WARNINGS
 #include <iostream>
 #include <vector>
 #include <queue>
 #include <cstdlib>
 #include <ctime>
 #include <windows.h>
+#include <iomanip>
 #include <climits>
 
 using namespace std;
 
-// Функция для генерации матрицы смежности
+// Функция для генерации матрицы смежности ориентированного графа
 vector<vector<int>> generateAdjMatrix(int n) {
     vector<vector<int>> adjMatrix(n, vector<int>(n, 0));
     srand(time(0));  // Инициализация генератора случайных чисел
 
     // Заполняем матрицу случайными весами рёбер (от 1 до 10)
     for (int i = 0; i < n; i++) {
-        for (int j = i + 1; j < n; j++) {
-            if (rand() % 2) {  // Ребро существует с вероятностью 50%
+        for (int j = 0; j < n; j++) {
+            if (i != j && rand() % 2) {  // Ребро существует с вероятностью 50%, не самосоединение
                 int weight = rand() % 10 + 1;  // Вес рёбер от 1 до 10
                 adjMatrix[i][j] = weight;
-                adjMatrix[j][i] = weight;  // Граф неориентированный
             }
         }
     }
     return adjMatrix;
+}
+
+// Функция для вывода матрицы смежности
+void printAdjMatrix(const vector<vector<int>>& adjMatrix) {
+    for (const auto& row : adjMatrix) {
+        for (int val : row) {
+            cout << std::setw(2) << val << " ";
+        }
+        cout << endl;
+    }
 }
 
 // Функция для поиска расстояний от исходной вершины
@@ -53,20 +64,20 @@ vector<int> BFSD(const vector<vector<int>>& adjMatrix, int start) {
     return dist;
 }
 
-// Функция для нахождения радиуса и диаметра
-
-void findRadiusAndDiameter(const vector<vector<int>>& adjMatrix, int& radius, int& diameter, vector<int>& centralVertices, vector<int>& peripheralVertices) {
+// Функция для нахождения радиуса, диаметра, центральных и периферийных вершин
+void findGraphProperties(const vector<vector<int>>& adjMatrix, int& radius, int& diameter, vector<int>& centralVertices, vector<int>& peripheralVertices) {
     int n = adjMatrix.size();
-    vector<int> allDist(n);
+    vector<int> dist(n);
 
     int maxDist = 0;  // Для вычисления диаметра
     int minDist = INT_MAX;  // Для вычисления радиуса
 
+    // Перебираем все вершины
     for (int i = 0; i < n; i++) {
-        allDist = BFSD(adjMatrix, i);  // Получаем расстояния от вершины i
+        dist = BFSD(adjMatrix, i);  // Получаем расстояния от вершины i
         int maxDistance = 0;
-        for (int d : allDist) {
-            if (d != -1) {
+        for (int d : dist) {
+            if (d != -1) {  // Если вершина достижима
                 maxDistance = max(maxDistance, d);  // Находим максимальное расстояние от вершины i
             }
         }
@@ -90,18 +101,7 @@ void findRadiusAndDiameter(const vector<vector<int>>& adjMatrix, int& radius, in
     diameter = maxDist;  // Присваиваем диаметр
 }
 
-// Функция для вывода матрицы смежности
-void printAdjMatrix(const vector<vector<int>>& adjMatrix) {
-    for (const auto& row : adjMatrix) {
-        for (int val : row) {
-            cout << val << " ";
-        }
-        cout << endl;
-    }
-}
-
 int main() {
-
     SetConsoleCP(1251);
     SetConsoleOutputCP(1251);
     int n, start;
@@ -119,7 +119,7 @@ int main() {
         return 1;
     }
 
-    // Генерация случайной матрицы смежности
+    // Генерация случайной матрицы смежности для ориентированного графа
     vector<vector<int>> adjMatrix = generateAdjMatrix(n);
 
     // Вывод сгенерированной матрицы смежности
@@ -143,7 +143,7 @@ int main() {
     // Нахождение радиуса, диаметра и центральных/периферийных вершин
     int radius, diameter;
     vector<int> centralVertices, peripheralVertices;
-    findRadiusAndDiameter(adjMatrix, radius, diameter, centralVertices, peripheralVertices);
+    findGraphProperties(adjMatrix, radius, diameter, centralVertices, peripheralVertices);
 
     cout << "\nРадиус графа: " << radius << endl;
     cout << "Диаметр графа: " << diameter << endl;
