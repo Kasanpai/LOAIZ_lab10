@@ -1,5 +1,4 @@
-﻿
-#define _CRT_SECURE_NO_WARNINGS
+﻿#define _CRT_SECURE_NO_WARNINGS
 #include <iostream>
 #include <vector>
 #include <queue>
@@ -8,23 +7,30 @@
 #include <windows.h>
 #include <iomanip>
 #include <climits>
+#include <cstring>  // Для использования strcmp
 
 using namespace std;
 
-// Функция для генерации матрицы смежности ориентированного графа
-vector<vector<int>> generateAdjMatrix(int n) {
+// Функция для генерации матрицы смежности
+vector<vector<int>> generateAdjMatrix(int n, bool weighted, bool directed) {
     vector<vector<int>> adjMatrix(n, vector<int>(n, 0));
     srand(time(0));  // Инициализация генератора случайных чисел
 
-    // Заполняем матрицу случайными весами рёбер (от 1 до 10)
+    // Заполняем матрицу смежности в зависимости от типа графа
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
             if (i != j && rand() % 2) {  // Ребро существует с вероятностью 50%, не самосоединение
-                int weight = rand() % 10 + 1;  // Вес рёбер от 1 до 10
+                int weight = (weighted) ? rand() % 10 + 1 : 1;  // Если взвешенный граф, вес от 1 до 10, если не взвешенный — 1
                 adjMatrix[i][j] = weight;
+
+                // Если граф неориентированный, добавляем обратное ребро
+                if (!directed) {
+                    adjMatrix[j][i] = weight;
+                }
             }
         }
     }
+
     return adjMatrix;
 }
 
@@ -101,26 +107,50 @@ void findGraphProperties(const vector<vector<int>>& adjMatrix, int& radius, int&
     diameter = maxDist;  // Присваиваем диаметр
 }
 
-int main() {
+int main(int argc, char* argv[]) {
     SetConsoleCP(1251);
     SetConsoleOutputCP(1251);
-    int n, start;
 
-    // Ввод количества вершин графа
-    cout << "Введите количество вершин в графе: ";
-    cin >> n;
+    bool weighted = false;   // По умолчанию граф не взвешенный
+    bool directed = false;   // По умолчанию граф не ориентированный
+    int n = 0;               // Количество вершин
+    int start = -1;          // Исходная вершина
 
-    // Ввод исходной вершины
-    cout << "Введите исходную вершину (от 0 до " << n - 1 << "): ";
-    cin >> start;
+    // Обработка параметров командной строки
+    for (int i = 1; i < argc; ++i) {
+        if (strcmp(argv[i], "-weighted") == 0) {
+            weighted = true;  // Взвешенный граф
+        }
+        else if (strcmp(argv[i], "-directed") == 0) {
+            directed = true;  // Ориентированный граф
+        }
+        else if (strcmp(argv[i], "-n") == 0) {
+            if (i + 1 < argc) {
+                n = atoi(argv[i + 1]);  // Количество вершин
+                i++;  // Пропускаем следующий аргумент
+            }
+        }
+        else if (strcmp(argv[i], "-start") == 0) {
+            if (i + 1 < argc) {
+                start = atoi(argv[i + 1]);  // Исходная вершина
+                i++;  // Пропускаем следующий аргумент
+            }
+        }
+    }
+
+    // Проверка, что все необходимые параметры указаны
+    if (n == 0 || start == -1) {
+        cout << "Ошибка: необходимо указать количество вершин и исходную вершину.\n";
+        return 1;
+    }
 
     if (start < 0 || start >= n) {
         cout << "Ошибка: исходная вершина должна быть в пределах от 0 до " << n - 1 << endl;
         return 1;
     }
 
-    // Генерация случайной матрицы смежности для ориентированного графа
-    vector<vector<int>> adjMatrix = generateAdjMatrix(n);
+    // Генерация матрицы смежности в зависимости от параметров
+    vector<vector<int>> adjMatrix = generateAdjMatrix(n, weighted, directed);
 
     // Вывод сгенерированной матрицы смежности
     cout << "Сгенерированная матрица смежности:\n";
@@ -159,6 +189,6 @@ int main() {
         cout << v << " ";
     }
     cout << endl;
-
+    system("pause");
     return 0;
 }
