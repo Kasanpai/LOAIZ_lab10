@@ -1,0 +1,5 @@
+﻿  ConsoleApplication10.cpp
+D:\Praktika\LOAIZ\laba10\ConsoleApplication10\ConsoleApplication10.cpp(17,15): warning C4244: аргумент: преобразование "time_t" в "unsigned int", возможна потеря данных
+D:\Praktika\LOAIZ\laba10\ConsoleApplication10\ConsoleApplication10.cpp(49,11): warning C4267: инициализация: преобразование из "size_t" в "int"; возможна потеря данных
+D:\Praktika\LOAIZ\laba10\ConsoleApplication10\ConsoleApplication10.cpp(75,11): warning C4267: инициализация: преобразование из "size_t" в "int"; возможна потеря данных
+  ConsoleApplication10.vcxproj -> D:\Praktika\LOAIZ\laba10\ConsoleApplication10\x64\Debug\ConsoleApplication10.exe
