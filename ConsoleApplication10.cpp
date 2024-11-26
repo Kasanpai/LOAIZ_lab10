@@ -5,26 +5,37 @@
 #include <cstdlib>
 #include <ctime>
 #include <windows.h>
+#include <iomanip>
 
 using namespace std;
 
-// Функция для генерации матрицы смежности
+// Функция для генерации матрицы смежности ориентированного графа
 vector<vector<int>> generateAdjMatrix(int n) {
     vector<vector<int>> adjMatrix(n, vector<int>(n, 0));
     srand(time(0));  // Инициализация генератора случайных чисел
 
     // Заполняем матрицу случайными весами рёбер (от 1 до 10)
     for (int i = 0; i < n; i++) {
-        for (int j = i + 1; j < n; j++) {
-            if (rand() % 2) {  // Ребро существует с вероятностью 50%
+        for (int j = 0; j < n; j++) {
+            if (i != j && rand() % 2) {  // Ребро существует с вероятностью 50%, не самосоединение
                 int weight = rand() % 10 + 1;  // Вес рёбер от 1 до 10
                 adjMatrix[i][j] = weight;
-                adjMatrix[j][i] = weight;  // Граф неориентированный
             }
         }
     }
     return adjMatrix;
 }
+
+// Функция для вывода матрицы смежности
+void printAdjMatrix(const vector<vector<int>>& adjMatrix) {
+    for (const auto& row : adjMatrix) {
+        for (int val : row) {
+            cout << std::setw(2) << val << " ";
+        }
+        cout << endl;
+    }
+}
+
 // Функция для поиска расстояний от исходной вершины
 vector<int> BFSD(const vector<vector<int>>& adjMatrix, int start) {
     int n = adjMatrix.size();
@@ -51,21 +62,8 @@ vector<int> BFSD(const vector<vector<int>>& adjMatrix, int start) {
     return dist;
 }
 
-
-
-
-// Функция для вывода матрицы смежности
-void printAdjMatrix(const vector<vector<int>>& adjMatrix) {
-    for (const auto& row : adjMatrix) {
-        for (int val : row) {
-            cout << val << " ";
-        }
-        cout << endl;
-    }
-}
-
-
 int main() {
+
 
     SetConsoleCP(1251);
     SetConsoleOutputCP(1251);
@@ -84,7 +82,7 @@ int main() {
         return 1;
     }
 
-    // Генерация случайной матрицы смежности
+    // Генерация случайной матрицы смежности для ориентированного графа
     vector<vector<int>> adjMatrix = generateAdjMatrix(n);
 
     // Вывод сгенерированной матрицы смежности
