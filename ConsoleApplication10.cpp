@@ -1,4 +1,5 @@
-﻿#define _CRT_SECURE_NO_WARNINGS
+﻿
+#define _CRT_SECURE_NO_WARNINGS
 #include <iostream>
 #include <vector>
 #include <queue>
@@ -7,188 +8,207 @@
 #include <windows.h>
 #include <iomanip>
 #include <climits>
-#include <cstring>  // Для использования strcmp
+#include <map>
+#include <cstring>
+#include <string>
 
 using namespace std;
 
-// Функция для генерации матрицы смежности
-vector<vector<int>> generateAdjMatrix(int n, bool weighted, bool directed) {
+// Функция для генерации матрицы смежности графа
+vector<vector<int>> generateAdjMatrix(int n, bool isDirected) {
     vector<vector<int>> adjMatrix(n, vector<int>(n, 0));
-    srand(time(0));  // Инициализация генератора случайных чисел
+    srand(time(0)); // Инициализация генератора случайных чисел
 
-    // Заполняем матрицу смежности в зависимости от типа графа
+    // Заполняем матрицу случайными весами рёбер (от 1 до 10)
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
-            if (i != j && rand() % 2) {  // Ребро существует с вероятностью 50%, не самосоединение
-                int weight = (weighted) ? rand() % 10 + 1 : 1;  // Если взвешенный граф, вес от 1 до 10, если не взвешенный — 1
+            if (i != j && rand() % 2) { // Ребро существует с вероятностью 50%, не самосоединение
+                int weight = rand() % 10 + 1; // Вес рёбер от 1 до 10
                 adjMatrix[i][j] = weight;
-
-                // Если граф неориентированный, добавляем обратное ребро
-                if (!directed) {
-                    adjMatrix[j][i] = weight;
+                if (!isDirected) {
+                    adjMatrix[j][i] = weight; // Для неориентированного графа делаем симметрию
                 }
             }
         }
     }
-
     return adjMatrix;
 }
 
-// Функция для вывода матрицы смежности
-void printAdjMatrix(const vector<vector<int>>& adjMatrix) {
-    for (const auto& row : adjMatrix) {
+void printMatrix(const vector<vector<int>>& matrix) {
+    for (const auto& row : matrix) {
         for (int val : row) {
-            cout << std::setw(2) << val << " ";
+            if (val == -1) {
+                cout << std::setw(3) << "-"; // Используем "-" для недостижимых вершин
+            }
+            else {
+                cout << std::setw(3) << val;
+            }
         }
         cout << endl;
     }
 }
 
-// Функция для поиска расстояний от исходной вершины
-vector<int> BFSD(const vector<vector<int>>& adjMatrix, int start) {
-    int n = adjMatrix.size();
-    vector<int> dist(n, -1);  // Вектор расстояний, инициализируем -1 (не посещено)
-    queue<int> q;
+// Функция для вывода матрицы с максимальным значением в строках
+void printMatrixDir(const vector<vector<int>>& matrix) {
+    for (const auto& row : matrix) {
+        int maxDistance = 0;
+        for (int val : row) {
+            if (val != -1) {
+                maxDistance = max(maxDistance, val); // Находим максимальное значение в строке
+            }
+        }
 
-    // Исходная вершина
-    dist[start] = 0;
-    q.push(start);
+        // Выводим строку матрицы
+        for (int val : row) {
+            if (val == -1) {
+                cout << std::setw(3) << "-"; // Используем "-" для недостижимых вершин
+            }
+            else {
+                cout << std::setw(3) << val;
+            }
+        }
 
-    while (!q.empty()) {
-        int v = q.front();  // Текущая вершина
-        q.pop();
+        // Выводим максимальное расстояние для текущей строки
+        if (maxDistance != 0) {
+            cout << "  | Максимум: " << maxDistance << endl;
+        }
+        else {
+            cout << " Эксцентриситет отсутствует " << endl;
+        }
+    }
+}
 
+// Алгоритм ПОШ для нахождения расстояний
+vector<int> bfsDistances(const vector<vector<int>>& G, int v) {
+    int n = G.size();                   // Количество вершин в графе
+    vector<int> DIST(n, -1);            // Вектор расстояний, изначально -1 ("не посещено")
+    queue<int> Q;                       // Очередь для обхода графа
+
+    // Инициализация для начальной вершины
+    Q.push(v);
+    DIST[v] = 0;
+
+    // Алгоритм поиска в ширину
+    while (!Q.empty()) {
+        int current = Q.front();        // Текущая вершина
+        Q.pop();
+
+        // Проверяем всех соседей текущей вершины
         for (int i = 0; i < n; i++) {
-            // Если существует ребро и вершина ещё не посещена
-            if (adjMatrix[v][i] > 0 && dist[i] == -1) {
-                dist[i] = dist[v] + adjMatrix[v][i];  // Обновляем расстояние
-                q.push(i);  // Добавляем вершину в очередь
+            if (G[current][i] > 0 && DIST[i] == -1) {  // Если ребро существует и вершина не посещена
+                Q.push(i);
+                DIST[i] = DIST[current] + G[current][i]; // Обновляем расстояние
             }
         }
     }
 
-    return dist;
+    return DIST;
 }
 
-// Функция для нахождения радиуса, диаметра, центральных и периферийных вершин
-void findGraphProperties(const vector<vector<int>>& adjMatrix, int& radius, int& diameter, vector<int>& centralVertices, vector<int>& peripheralVertices) {
-    int n = adjMatrix.size();
-    vector<int> dist(n);
+// Функция для расчета радиуса, диаметра, центральных и периферийных вершин
+void calculateGraphProperties(const vector<vector<int>>& distanceMatrix) {
+    int n = distanceMatrix.size();
+    vector<int> eccentricities(n, 0); // Вектор эксцентриситетов
 
-    int maxDist = 0;  // Для вычисления диаметра
-    int minDist = INT_MAX;  // Для вычисления радиуса
-
-    // Перебираем все вершины
+    // Находим эксцентриситеты
     for (int i = 0; i < n; i++) {
-        dist = BFSD(adjMatrix, i);  // Получаем расстояния от вершины i
         int maxDistance = 0;
-        for (int d : dist) {
-            if (d != -1) {  // Если вершина достижима
-                maxDistance = max(maxDistance, d);  // Находим максимальное расстояние от вершины i
+        for (int j = 0; j < n; j++) {
+            if (distanceMatrix[i][j] != -1) { // Если вершина достижима
+                maxDistance = max(maxDistance, distanceMatrix[i][j]);
             }
         }
+        eccentricities[i] = maxDistance;
+    }
 
-        // Находим диаметр
-        maxDist = max(maxDist, maxDistance);
+    // Радиус и диаметр графа
+    int radius = INT_MAX, diameter = 0;
+    for (int ecc : eccentricities) {
+        radius = min(radius, ecc);
+        diameter = max(diameter, ecc);
+    }
 
-        // Находим радиус
-        minDist = min(minDist, maxDistance);
-
-        // Добавляем центральные и периферийные вершины
-        if (maxDistance == minDist) {
+    // Поиск центральных и периферийных вершин
+    vector<int> centralVertices, peripheralVertices;
+    for (int i = 0; i < n; i++) {
+        if (eccentricities[i] == radius) {
             centralVertices.push_back(i);
         }
-        if (maxDistance == maxDist) {
+        if (eccentricities[i] == diameter) {
             peripheralVertices.push_back(i);
         }
     }
 
-    radius = minDist;  // Присваиваем радиус
-    diameter = maxDist;  // Присваиваем диаметр
+    // Вывод результатов
+    cout << "\nРадиус графа (r(G)): " << radius << endl;
+    cout << "Диаметр графа (D(G)): " << diameter << endl;
+
+    cout << "Центральные вершины: ";
+    for (int v : centralVertices) cout << v + 1 << " ";
+    cout << endl;
+
+    cout << "Периферийные вершины: ";
+    for (int v : peripheralVertices) cout << v + 1 << " ";
+    cout << endl;
 }
 
 int main(int argc, char* argv[]) {
     SetConsoleCP(1251);
     SetConsoleOutputCP(1251);
 
-    bool weighted = false;   // По умолчанию граф не взвешенный
-    bool directed = false;   // По умолчанию граф не ориентированный
+    bool isDirected = false;   // По умолчанию граф не ориентированный
     int n = 0;               // Количество вершин
-    int start = -1;          // Исходная вершина
 
-    // Обработка параметров командной строки
+    map<string, string> args;
+
+    // Считываем аргументы командной строки
     for (int i = 1; i < argc; ++i) {
-        if (strcmp(argv[i], "-weighted") == 0) {
-            weighted = true;  // Взвешенный граф
+        string arg = argv[i];
+        if (arg == "-directed") {
+            args["directed"] = "true";
         }
-        else if (strcmp(argv[i], "-directed") == 0) {
-            directed = true;  // Ориентированный граф
-        }
-        else if (strcmp(argv[i], "-n") == 0) {
+        else if (arg == "-n") {
             if (i + 1 < argc) {
-                n = atoi(argv[i + 1]);  // Количество вершин
-                i++;  // Пропускаем следующий аргумент
-            }
-        }
-        else if (strcmp(argv[i], "-start") == 0) {
-            if (i + 1 < argc) {
-                start = atoi(argv[i + 1]);  // Исходная вершина
-                i++;  // Пропускаем следующий аргумент
+                args["n"] = argv[i + 1];
+                i++;
             }
         }
     }
 
-    // Проверка, что все необходимые параметры указаны
-    if (n == 0 || start == -1) {
-        cout << "Ошибка: необходимо указать количество вершин и исходную вершину.\n";
+    // Проверка на указание всех необходимых параметров
+    if (args.find("n") != args.end()) {
+        n = stoi(args["n"]);
+    }
+    else {
+        cout << "Ошибка: необходимо указать количество вершин с помощью параметра -n.\n";
         return 1;
     }
 
-    if (start < 0 || start >= n) {
-        cout << "Ошибка: исходная вершина должна быть в пределах от 0 до " << n - 1 << endl;
-        return 1;
+    if (args.find("directed") != args.end() && args["directed"] == "true") {
+        isDirected = true;
     }
 
-    // Генерация матрицы смежности в зависимости от параметров
-    vector<vector<int>> adjMatrix = generateAdjMatrix(n, weighted, directed);
+    // Генерация случайной матрицы смежности
+    vector<vector<int>> adjMatrix = generateAdjMatrix(n, isDirected);
 
     // Вывод сгенерированной матрицы смежности
     cout << "Сгенерированная матрица смежности:\n";
-    printAdjMatrix(adjMatrix);
+    printMatrix(adjMatrix);
 
-    // Нахождение расстояний от исходной вершины
-    vector<int> dist = BFSD(adjMatrix, start);
+    // Матрица расстояний
+    vector<vector<int>> distanceMatrix(n, vector<int>(n, -1));
 
-    // Вывод результатов
-    cout << "Расстояния от вершины " << start << ":\n";
-    for (int i = 0; i < dist.size(); i++) {
-        if (dist[i] == -1) {
-            cout << "Расстояние до вершины " << i << ": недоступно" << endl;
-        }
-        else {
-            cout << "Расстояние до вершины " << i << ": " << dist[i] << endl;
-        }
+    // Вычисление расстояний от каждой вершины до всех остальных
+    for (int i = 0; i < n; i++) {
+        distanceMatrix[i] = bfsDistances(adjMatrix, i);
     }
 
-    // Нахождение радиуса, диаметра и центральных/периферийных вершин
-    int radius, diameter;
-    vector<int> centralVertices, peripheralVertices;
-    findGraphProperties(adjMatrix, radius, diameter, centralVertices, peripheralVertices);
+    // Вывод матрицы расстояний
+    cout << "\nМатрица расстояний от каждой вершины до каждой:\n";
+    printMatrixDir(distanceMatrix);
 
-    cout << "\nРадиус графа: " << radius << endl;
-    cout << "Диаметр графа: " << diameter << endl;
-
-    cout << "\nЦентральные вершины: ";
-    for (int v : centralVertices) {
-        cout << v << " ";
-    }
-    cout << endl;
-
-    cout << "\nПериферийные вершины: ";
-    for (int v : peripheralVertices) {
-        cout << v << " ";
-    }
-    cout << endl;
+    // Расчет радиуса, диаметра и характеристик вершин
+    calculateGraphProperties(distanceMatrix);
     system("pause");
     return 0;
 }
